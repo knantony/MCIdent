@@ -1,0 +1,29 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "ssl": false,
+    "name": "myapp_dev"
+  },
+  "api": {
+    "baseUrl": "http://localhost:8080",
+    "timeout": 5000,
+    "ssl": false
+  },
+  "debug": {
+    "enabled": true,
+    "level": "debug"
+  },
+  "cache": {
+    "ttl": 60,
+    "maxSize": 1000
+  },
+  "logging": {
+    "level": "debug",
+    "file": "/tmp/app.log"
+  },
+  "auth": {
+    "jwtSecret": "dev-secret-key",
+    "tokenExpiry": "1h"
+  }
+}

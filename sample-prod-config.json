@@ -1,0 +1,29 @@
+{
+  "database": {
+    "host": "prod-db.example.com",
+    "port": 5432,
+    "ssl": true,
+    "name": "myapp_prod"
+  },
+  "api": {
+    "baseUrl": "https://api.example.com",
+    "timeout": 10000,
+    "ssl": true
+  },
+  "debug": {
+    "enabled": true,
+    "level": "error"
+  },
+  "cache": {
+    "ttl": 3600,
+    "maxSize": 10000
+  },
+  "logging": {
+    "level": "info",
+    "file": "/var/log/app.log"
+  },
+  "auth": {
+    "jwtSecret": "production-secret-key-123",
+    "tokenExpiry": "24h"
+  }
+}
