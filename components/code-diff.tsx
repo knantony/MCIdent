@@ -224,7 +224,7 @@ function CodeBlock({
     }
 
     return (
-      <div key={lineIndex} className="flex hover:bg-muted/50 px-2 -mx-2 rounded">
+      <div key={lineIndex} className="flex hover:bg-muted/50 px-2 -mx-2 rounded py-0.5">
         <div className="text-muted-foreground/60 w-8 text-right pr-4 select-none">
           {lineIndex + 1}
         </div>

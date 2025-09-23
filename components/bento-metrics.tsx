@@ -25,26 +25,26 @@ export default function BentoMetrics({ healthScore, totalIssues }: BentoMetricsP
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       {/* Health Score Card */}
-      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between h-full p-4">
-        <div className="flex flex-row justify-between items-start mb-2">
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
           <span className="text-base font-medium text-foreground">Configuration Health</span>
           <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-muted-foreground font-semibold">
             {healthScore.score >= 80 ? <TrendingUp className="w-3 h-3 mr-1 text-green-400" /> : <AlertTriangle className="w-3 h-3 mr-1 text-red-400" />}
             {healthScore.score}%
           </span>
         </div>
-        <div className="text-4xl font-bold text-white mb-1">{healthScore.score}</div>
-        <div className="text-sm font-semibold text-muted-foreground mb-1">
+        <div className="text-4xl font-bold text-white mb-0">{healthScore.score}</div>
+        <div className="text-sm font-semibold text-muted-foreground mb-0">
           {healthScore.score >= 80 ? 'Excellent' : healthScore.score >= 60 ? 'Good' : 'Needs Attention'}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">Overall config health</div>
+        <div className="text-xs text-muted-foreground mt-0">Overall config health</div>
       </Card>
 
       {/* High Risk Card */}
-      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between h-full p-4">
-        <div className="flex flex-row justify-between items-start mb-2">
+  <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-2">
+        <div className="flex flex-row justify-between items-start mb-0.5">
           <span className="text-base font-medium text-foreground">High Risk</span>
           <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-red-400 font-semibold">
             <AlertTriangle className="w-3 h-3 mr-1" />
@@ -57,8 +57,8 @@ export default function BentoMetrics({ healthScore, totalIssues }: BentoMetricsP
       </Card>
 
       {/* Medium Risk Card */}
-      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between h-full p-4">
-        <div className="flex flex-row justify-between items-start mb-2">
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
           <span className="text-base font-medium text-foreground">Medium Risk</span>
           <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-yellow-400 font-semibold">
             <Shield className="w-3 h-3 mr-1" />
@@ -71,8 +71,8 @@ export default function BentoMetrics({ healthScore, totalIssues }: BentoMetricsP
       </Card>
 
       {/* Low Risk Card */}
-      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between h-full p-4">
-        <div className="flex flex-row justify-between items-start mb-2">
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
           <span className="text-base font-medium text-foreground">Low Risk</span>
           <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-green-400 font-semibold">
             <CheckCircle className="w-3 h-3 mr-1" />
@@ -85,8 +85,8 @@ export default function BentoMetrics({ healthScore, totalIssues }: BentoMetricsP
       </Card>
 
       {/* Total Issues Card */}
-      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between h-full p-4">
-        <div className="flex flex-row justify-between items-start mb-2">
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
           <span className="text-base font-medium text-foreground">Total Issues Found</span>
           <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-blue-400 font-semibold">
             <FileX className="w-3 h-3 mr-1" />
