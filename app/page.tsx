@@ -151,11 +151,11 @@ export default function Home() {
   const canCompare = fileUploadState.devFile && fileUploadState.prodFile && !analysisState.isLoading;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-4 text-foreground">
             Config Compare AI
           </h1>
           <p className="text-gray-300 text-lg max-w-2xl mx-auto">
@@ -187,7 +187,7 @@ export default function Home() {
                 onClick={handleCompareFiles}
                 disabled={!canCompare}
                 size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:bg-gray-700 disabled:text-gray-400 text-white font-medium px-8 py-3"
+                className="bg-zinc-800 hover:bg-zinc-700 disabled:bg-black disabled:text-gray-600 border border-zinc-700 text-white font-medium px-8 py-3"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
                 Analyze with AI
@@ -197,8 +197,8 @@ export default function Home() {
             {/* Error Display */}
             {analysisState.error && (
               <div className="mt-6">
-                <Alert className="bg-red-950 border-red-800">
-                  <AlertDescription className="text-red-200">
+                <Alert className="bg-black border border-red-800">
+                  <AlertDescription className="text-red-400">
                     {analysisState.error}
                   </AlertDescription>
                 </Alert>
@@ -210,7 +210,7 @@ export default function Home() {
         {/* Loading State */}
         {analysisState.isLoading && (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-12 h-12 animate-spin text-blue-400 mb-4" />
+            <Loader2 className="w-12 h-12 animate-spin text-white mb-4" />
             <p className="text-xl text-gray-300">AI is analyzing your configurations...</p>
             <p className="text-gray-400 mt-2">This may take a few moments</p>
           </div>
@@ -230,7 +230,7 @@ export default function Home() {
               <Button
                 onClick={handleExportReport}
                 variant="outline"
-                className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                className="bg-black border-gray-800 text-white hover:bg-zinc-900"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Export Report
@@ -245,43 +245,58 @@ export default function Home() {
             />
 
             {/* Summary Table */}
-            <Card className="bg-gray-900 border-gray-800">
+            <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <FileCode className="w-5 h-5" />
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <FileCode className="w-5 h-5 text-vercel-blue" />
                   Issues Summary
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-muted-foreground">
                   Overview of all configuration discrepancies found
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-full text-sm">
                     <TableHeader>
-                      <TableRow className="border-gray-700">
-                        <TableHead className="text-gray-300">Configuration Key</TableHead>
-                        <TableHead className="text-gray-300">Issue Description</TableHead>
-                        <TableHead className="text-gray-300">Recommendation</TableHead>
-                        <TableHead className="text-gray-300">Risk</TableHead>
+                      <TableRow>
+                        <TableHead className="text-muted-foreground font-semibold py-3 px-4">Configuration Key</TableHead>
+                        <TableHead className="text-muted-foreground font-semibold py-3 px-4">Issue Description</TableHead>
+                        <TableHead className="text-muted-foreground font-semibold py-3 px-4">Recommendation</TableHead>
+                        <TableHead className="text-muted-foreground font-semibold py-3 px-4 text-center">Risk</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {analysisState.results.map((result, index) => (
-                        <TableRow key={index} className="border-gray-700">
-                          <TableCell className="font-mono text-blue-300">
-                            {result.key}
+                        <TableRow key={index} className="border-b border-[#232326]">
+                          <TableCell className="font-mono text-vercel-blue px-4 py-2">
+                            <span className="block max-w-[180px] truncate break-words whitespace-pre-wrap" title={result.key}>
+                              {result.key}
+                            </span>
                           </TableCell>
-                          <TableCell className="text-gray-300 max-w-md">
-                            {result.observation}
+                          <TableCell className="text-foreground px-4 py-2 max-w-md">
+                            <span className="block max-w-[260px] break-words whitespace-pre-wrap overflow-hidden" title={result.observation}>
+                              {result.observation}
+                            </span>
                           </TableCell>
-                          <TableCell className="text-gray-300 max-w-md">
-                            {result.suggestion}
+                          <TableCell className="text-foreground px-4 py-2 max-w-md">
+                            <span className="block max-w-[260px] break-words whitespace-pre-wrap overflow-hidden" title={result.suggestion}>
+                              {result.suggestion}
+                            </span>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant={getRiskBadgeVariant(result.risk) as any}>
+                          <TableCell className="px-4 py-2 text-center">
+                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-transparent">
+                              {result.risk === "Low" && (
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                              )}
+                              {result.risk === "Medium" && (
+                                <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" />
+                              )}
+                              {result.risk === "High" && (
+                                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                              )}
                               {result.risk}
-                            </Badge>
+                            </span>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -300,7 +315,7 @@ export default function Home() {
                   setConfigContents({ devConfig: '', prodConfig: '' });
                 }}
                 variant="outline"
-                className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                className="bg-black border-gray-800 text-white hover:bg-zinc-900"
               >
                 Analyze New Files
               </Button>
