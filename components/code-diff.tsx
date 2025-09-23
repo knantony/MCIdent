@@ -99,7 +99,7 @@ function SquiggleUnderline({ recommendation, risk, children }: SquiggleProps) {
       
       {showTooltip && (
         <div className={cn(
-          "absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2",
+          "absolute z-[10000] bottom-full left-1/2 transform -translate-x-1/2 mb-2",
           "bg-black border rounded-lg shadow-xl p-3 min-w-64 max-w-sm",
           getRiskColor(risk)
         )}>
@@ -224,7 +224,7 @@ function CodeBlock({
     }
 
     return (
-      <div key={lineIndex} className="flex hover:bg-muted/50 px-2 -mx-2 rounded py-0.5">
+      <div key={lineIndex} className="flex hover:bg-muted/50 px-2 -mx-2 rounded">
         <div className="text-muted-foreground/60 w-8 text-right pr-4 select-none">
           {lineIndex + 1}
         </div>
@@ -242,7 +242,7 @@ function CodeBlock({
           {title}
         </Badge>
       </div>
-      <div className="bg-secondary rounded-lg overflow-hidden border border-border">
+  <div className="bg-secondary rounded-lg overflow-visible border border-border">
         <div className="p-4">
           <div className="text-sm font-mono text-muted-foreground whitespace-pre-wrap">
             {highlightProblematicCode(config)
@@ -322,7 +322,7 @@ function SideBySideView({
 function UnifiedView({ comparisonResults }: { comparisonResults: ComparisonResult[] }) {
   return (
     <div className="space-y-2">
-      <div className="bg-secondary rounded-lg overflow-hidden border border-border">
+  <div className="bg-secondary rounded-lg overflow-visible border border-border">
         <div className="p-4">
           <div className="text-sm font-mono text-muted-foreground whitespace-pre-wrap">
             {comparisonResults.map((result, resultIndex) => (
