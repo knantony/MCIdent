@@ -371,8 +371,7 @@ export default function CodeDiff({ devConfig, prodConfig, comparisonResults }: C
   const [activeView, setActiveView] = useState<'side-by-side' | 'unified'>('side-by-side');
   
   return (
-    <Card className="bg-card border border-border rounded-xl shadow-sm relative">
-      <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-t-xl" />
+    <Card className="bg-card border border-border rounded-xl shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pt-4">
         <CardTitle className="flex items-center gap-2 text-foreground">
           <Code className="w-5 h-5 text-blue-500" />
