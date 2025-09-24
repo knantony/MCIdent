@@ -64,24 +64,24 @@ export default function FileDropZone({
   };
 
   return (
-    <Card className={cn("bg-gray-900 border-gray-800 transition-all duration-200", className)}>
+    <Card className={cn("bg-card border border-border rounded-xl shadow-sm transition-all duration-200", className)}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
-          <FileText className="w-5 h-5" />
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <FileText className="w-5 h-5 text-vercel-blue" />
           {title}
         </CardTitle>
-        <p className="text-gray-400 text-sm">{description}</p>
+        <p className="text-muted-foreground text-sm">{description}</p>
       </CardHeader>
       <CardContent>
         <div
           {...getRootProps()}
           className={cn(
-            "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200",
-            "hover:border-blue-500 hover:bg-gray-800/50",
-            isDragActive && !isDragReject && "border-blue-500 bg-blue-500/10",
-            isDragReject && "border-red-500 bg-red-500/10",
-            file && "border-green-500 bg-green-500/10",
-            !file && "border-gray-600"
+            "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200",
+            "hover:border-vercel-blue hover:bg-secondary/60",
+            isDragActive && !isDragReject && "border-vercel-blue bg-card",
+            isDragReject && "border-vercel-red bg-card",
+            file && "border-vercel-green bg-card",
+            !file && "border-border"
           )}
         >
           <input {...getInputProps()} />
@@ -90,11 +90,11 @@ export default function FileDropZone({
             // File uploaded state
             <div className="space-y-4">
               <div className="flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-green-400" />
+                <CheckCircle className="w-12 h-12 text-green-500" />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-2">
-                  <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30">
+                  <Badge variant="secondary" className="bg-black text-white border-gray-700">
                     <FileText className="w-3 h-3 mr-1" />
                     {file.name}
                   </Badge>
@@ -114,10 +114,10 @@ export default function FileDropZone({
             // Error state
             <div className="space-y-4">
               <div className="flex items-center justify-center">
-                <AlertCircle className="w-12 h-12 text-red-400" />
+                <AlertCircle className="w-12 h-12 text-red-500" />
               </div>
               <div className="space-y-2">
-                <p className="text-red-400 font-medium">{dragError}</p>
+                <p className="text-red-500 font-medium">{dragError}</p>
                 <p className="text-gray-400 text-sm">
                   Supported: JSON, YAML, ENV, Config files
                 </p>
@@ -127,12 +127,12 @@ export default function FileDropZone({
             // Drag active state
             <div className="space-y-4">
               <div className="flex items-center justify-center">
-                <div className="w-12 h-12 border-2 border-blue-400 border-dashed rounded-full flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-blue-400" />
+                <div className="w-12 h-12 border-2 border-gray-500 border-dashed rounded-full flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-gray-300" />
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-blue-400 font-medium">
+                <p className="text-gray-300 font-medium">
                   {isDragReject ? "File type not supported" : "Drop your file here"}
                 </p>
                 <p className="text-gray-400 text-sm">Release to upload</p>
@@ -142,8 +142,8 @@ export default function FileDropZone({
             // Default state
             <div className="space-y-4">
               <div className="flex items-center justify-center">
-                <div className="w-12 h-12 border-2 border-gray-600 border-dashed rounded-full flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-gray-400" />
+                <div className="w-12 h-12 border-2 border-gray-800 border-dashed rounded-full flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-gray-500" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -151,7 +151,7 @@ export default function FileDropZone({
                   Drag & drop your file here
                 </p>
                 <p className="text-gray-400 text-sm">
-                  or <span className="text-blue-400 underline">click to browse</span>
+                  or <span className="text-gray-300 underline">click to browse</span>
                 </p>
                 <p className="text-xs text-gray-500">
                   Supports JSON, YAML, ENV, Config files (max 5MB)

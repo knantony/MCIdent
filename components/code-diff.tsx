@@ -4,9 +4,17 @@ import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ComparisonResult } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Code, AlertTriangle, Info, CheckCircle } from 'lucide-react';
+
+// Type definitions
+interface ComparisonResult {
+  key: string;
+  devValue: string;
+  prodValue: string;
+  suggestion: string;
+  risk: 'Low' | 'Medium' | 'High';
+}
 
 interface CodeDiffProps {
   devConfig: string;
@@ -20,52 +28,69 @@ interface SquiggleProps {
   children: React.ReactNode;
 }
 
+// Helper functions
+const getRiskColor = (risk: string) => {
+  switch (risk) {
+    case 'High': return 'border-red-400';
+    case 'Medium': return 'border-yellow-400';
+    case 'Low': return 'border-green-400';
+    default: return 'border-gray-400';
+  }
+};
+
+const getRiskIcon = (risk: string) => {
+  switch (risk) {
+    case 'High': return <AlertTriangle className="w-3 h-3 text-red-400" />;
+    case 'Medium': return <Info className="w-3 h-3 text-yellow-400" />;
+    case 'Low': return <CheckCircle className="w-3 h-3 text-green-400" />;
+    default: return null;
+  }
+};
+
+const getUnderlineColor = (risk: string) => {
+  switch (risk) {
+    case 'High': return '#f87171';
+    case 'Medium': return '#facc15';
+    case 'Low': return '#4ade80';
+    default: return '#9ca3af';
+  }
+};
+
+const getBadgeVariant = (risk: string) => {
+  switch (risk) {
+    case 'High': return 'destructive';
+    case 'Medium': return 'default';
+    case 'Low': return 'secondary';
+    default: return 'secondary';
+  }
+};
+
+// Components
 function SquiggleUnderline({ recommendation, risk, children }: SquiggleProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-      case 'High': return 'border-red-400';
-      case 'Medium': return 'border-yellow-400';
-      case 'Low': return 'border-green-400';
-      default: return 'border-gray-400';
-    }
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setShowTooltip(true);
   };
 
-  const getRiskIcon = (risk: string) => {
-    switch (risk) {
-      case 'High': return <AlertTriangle className="w-3 h-3 text-red-400" />;
-      case 'Medium': return <Info className="w-3 h-3 text-yellow-400" />;
-      case 'Low': return <CheckCircle className="w-3 h-3 text-green-400" />;
-      default: return null;
-    }
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => setShowTooltip(false), 200);
   };
 
   return (
     <span
       className="relative"
-      onMouseEnter={() => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        setShowTooltip(true);
-      }}
-      onMouseLeave={() => {
-        timeoutRef.current = setTimeout(() => setShowTooltip(false), 200);
-      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <span 
-        className={cn(
-          "relative",
-          "after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5",
-          "after:bg-current after:opacity-60",
-          risk === 'High' && "after:bg-red-400",
-          risk === 'Medium' && "after:bg-yellow-400", 
-          risk === 'Low' && "after:bg-green-400"
-        )}
+        className="relative"
         style={{
           textDecorationLine: 'underline',
           textDecorationStyle: 'wavy',
-          textDecorationColor: risk === 'High' ? '#f87171' : risk === 'Medium' ? '#facc15' : '#4ade80',
+          textDecorationColor: getUnderlineColor(risk),
           textUnderlineOffset: '4px'
         }}
       >
@@ -74,13 +99,13 @@ function SquiggleUnderline({ recommendation, risk, children }: SquiggleProps) {
       
       {showTooltip && (
         <div className={cn(
-          "absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2",
-          "bg-gray-800 border rounded-lg shadow-xl p-3 min-w-64 max-w-sm",
+          "absolute z-[10000] bottom-full left-1/2 transform -translate-x-1/2 mb-2",
+          "bg-black border rounded-lg shadow-xl p-3 min-w-64 max-w-sm",
           getRiskColor(risk)
         )}>
           <div className="flex items-start gap-2 mb-2">
             {getRiskIcon(risk)}
-            <Badge variant={risk === 'High' ? 'destructive' : risk === 'Medium' ? 'default' : 'secondary'} className="text-xs">
+            <Badge variant={getBadgeVariant(risk)} className="text-xs">
               {risk} Risk
             </Badge>
           </div>
@@ -98,36 +123,54 @@ function SquiggleUnderline({ recommendation, risk, children }: SquiggleProps) {
   );
 }
 
-export default function CodeDiff({ devConfig, prodConfig, comparisonResults }: CodeDiffProps) {
-  const [activeView, setActiveView] = useState<'side-by-side' | 'unified'>('side-by-side');
-  
-  // Parse JSON to format it properly
-  const formatConfig = (config: string) => {
-    try {
-      return JSON.stringify(JSON.parse(config), null, 2);
-    } catch {
-      return config;
-    }
-  };
+function RiskLegend() {
+  return (
+    <div className="mt-4 p-3 bg-secondary rounded-lg border border-border">
+      <div className="flex gap-4 items-center">
+        <p className="text-xs text-muted-foreground flex items-center">
+          <span className="inline-block w-3 h-3 rounded-full bg-red-400 mr-1"></span> 
+          High Risk
+        </p>
+        <p className="text-xs text-muted-foreground flex items-center">
+          <span className="inline-block w-3 h-3 rounded-full bg-yellow-400 mr-1"></span> 
+          Medium Risk
+        </p>
+        <p className="text-xs text-muted-foreground flex items-center">
+          <span className="inline-block w-3 h-3 rounded-full bg-green-400 mr-1"></span> 
+          Low Risk
+        </p>
+      </div>
+    </div>
+  );
+}
 
-  const formattedDevConfig = formatConfig(devConfig);
-  const formattedProdConfig = formatConfig(prodConfig);
-
-  // Create a map of keys to their comparison results for quick lookup
+function CodeBlock({ 
+  config, 
+  title, 
+  comparisonResults, 
+  isDevConfig 
+}: { 
+  config: string; 
+  title: string; 
+  comparisonResults: ComparisonResult[]; 
+  isDevConfig: boolean;
+}) {
   const resultMap = new Map<string, ComparisonResult>();
   comparisonResults.forEach(result => {
     resultMap.set(result.key, result);
   });
 
-  // Function to highlight problematic lines with squiggles
-  const highlightProblematicCode = (code: string, isDevConfig: boolean) => {
+  const highlightProblematicCode = (code: string) => {
     if (!comparisonResults.length) return code;
 
     let highlightedCode = code;
     
     comparisonResults.forEach((result) => {
       const searchValue = isDevConfig ? result.devValue : result.prodValue;
-      const keyPattern = new RegExp(`("${result.key.split('.').pop()}"\\s*:\\s*)(${JSON.stringify(searchValue)})`, 'g');
+      const keyPattern = new RegExp(
+        `("${result.key.split('.').pop()}"\\s*:\\s*)(${JSON.stringify(searchValue)})`, 
+        'g'
+      );
       
       highlightedCode = highlightedCode.replace(keyPattern, (match, keyPart, valuePart) => {
         return `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
@@ -137,270 +180,216 @@ export default function CodeDiff({ devConfig, prodConfig, comparisonResults }: C
     return highlightedCode;
   };
 
-  if (activeView === 'side-by-side') {
+  const renderCodeLine = (line: string, lineIndex: number) => {
+    const squiggleRegex = /<squiggle data-key="([^"]*)" data-risk="([^"]*)">(.*?)<\/squiggle>/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = squiggleRegex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(
+          <span key={`${lineIndex}-text-${lastIndex}`}>
+            {line.substring(lastIndex, match.index)}
+          </span>
+        );
+      }
+
+      const [_, key, risk, content] = match;
+      const result = resultMap.get(key);
+      
+      if (result) {
+        parts.push(
+          <SquiggleUnderline
+            key={`${lineIndex}-squiggle-${match.index}`}
+            risk={risk as 'Low' | 'Medium' | 'High'}
+            recommendation={result.suggestion}
+          >
+            {content}
+          </SquiggleUnderline>
+        );
+      } else {
+        parts.push(<span key={`${lineIndex}-plain-${match.index}`}>{content}</span>);
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < line.length) {
+      parts.push(
+        <span key={`${lineIndex}-text-end`}>
+          {line.substring(lastIndex)}
+        </span>
+      );
+    }
+
     return (
-      <Card className="bg-gray-900 border-gray-700">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Code className="w-5 h-5" />
-            Configuration Comparison
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant={activeView === 'side-by-side' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveView('side-by-side')}
-              className="text-xs"
-            >
-              Side by Side
-            </Button>
-            <Button
-              variant={activeView === 'unified' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveView('unified')}
-              className="text-xs"
-            >
-              Unified
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Development Config */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
-                  Development
-                </Badge>
-              </div>
-              <div className="bg-gray-950 rounded-lg overflow-hidden border border-gray-700">
-                <div className="p-4">
-                  <div className="text-sm font-mono text-gray-300 whitespace-pre-wrap">
-                    {highlightProblematicCode(formattedDevConfig, true)
-                      .split('\n')
-                      .map((line, lineIndex) => {
-                        const squiggleRegex = /<squiggle data-key="([^"]*)" data-risk="([^"]*)">(.*?)<\/squiggle>/g;
-                        const parts: React.ReactNode[] = [];
-                        let lastIndex = 0;
-                        let match;
-
-                        while ((match = squiggleRegex.exec(line)) !== null) {
-                          // Add text before the squiggle
-                          if (match.index > lastIndex) {
-                            parts.push(
-                              <span 
-                                key={`dev-before-${lineIndex}-${match.index}`}
-                                dangerouslySetInnerHTML={{ 
-                                  __html: line.substring(lastIndex, match.index)
-                                    .replace(/(".*?")/g, '<span class="text-green-400">$1</span>')
-                                    .replace(/(\{|\}|\[|\])/g, '<span class="text-yellow-400">$1</span>')
-                                    .replace(/(true|false|null)/g, '<span class="text-blue-400">$1</span>')
-                                    .replace(/(\d+)/g, '<span class="text-purple-400">$1</span>')
-                                }} 
-                              />
-                            );
-                          }
-                          
-                          // Add the squiggled text
-                          const [, key, risk, value] = match;
-                          const result = resultMap.get(key);
-                          if (result) {
-                            parts.push(
-                              <SquiggleUnderline 
-                                key={`dev-${lineIndex}-${match.index}`}
-                                recommendation={result.suggestion}
-                                risk={risk as 'Low' | 'Medium' | 'High'}
-                              >
-                                {value}
-                              </SquiggleUnderline>
-                            );
-                          } else {
-                            parts.push(value);
-                          }
-                          
-                          lastIndex = squiggleRegex.lastIndex;
-                        }
-                        
-                        // Add remaining text
-                        if (lastIndex < line.length) {
-                          const remainingText = line.substring(lastIndex);
-                          parts.push(
-                            <span 
-                              key={`dev-remaining-${lineIndex}`}
-                              dangerouslySetInnerHTML={{ 
-                                __html: remainingText
-                                  .replace(/(".*?")/g, '<span class="text-green-400">$1</span>')
-                                  .replace(/(\{|\}|\[|\])/g, '<span class="text-yellow-400">$1</span>')
-                                  .replace(/(true|false|null)/g, '<span class="text-blue-400">$1</span>')
-                                  .replace(/(\d+)/g, '<span class="text-purple-400">$1</span>')
-                              }} 
-                            />
-                          );
-                        }
-                        
-                        return (
-                          <div key={lineIndex} className="flex hover:bg-gray-900/30 px-2 -mx-2 rounded">
-                            <span className="text-gray-500 text-right pr-4 select-none w-12 flex-shrink-0">
-                              {lineIndex + 1}
-                            </span>
-                            <span className="flex-1">
-                              {parts.length > 1 ? parts : (
-                                <span dangerouslySetInnerHTML={{ 
-                                  __html: line
-                                    .replace(/(".*?")/g, '<span class="text-green-400">$1</span>')
-                                    .replace(/(\{|\}|\[|\])/g, '<span class="text-yellow-400">$1</span>')
-                                    .replace(/(true|false|null)/g, '<span class="text-blue-400">$1</span>')
-                                    .replace(/(\d+)/g, '<span class="text-purple-400">$1</span>')
-                                }} />
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Production Config */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="secondary" className="bg-green-500/20 text-green-300 border-green-500/30">
-                  Production
-                </Badge>
-              </div>
-              <div className="bg-gray-950 rounded-lg overflow-hidden border border-gray-700">
-                <div className="p-4">
-                  <div className="text-sm font-mono text-gray-300 whitespace-pre-wrap">
-                    {highlightProblematicCode(formattedProdConfig, false)
-                      .split('\n')
-                      .map((line, lineIndex) => {
-                        const squiggleRegex = /<squiggle data-key="([^"]*)" data-risk="([^"]*)">(.*?)<\/squiggle>/g;
-                        const parts: React.ReactNode[] = [];
-                        let lastIndex = 0;
-                        let match;
-
-                        while ((match = squiggleRegex.exec(line)) !== null) {
-                          // Add text before the squiggle
-                          if (match.index > lastIndex) {
-                            parts.push(
-                              <span 
-                                key={`prod-before-${lineIndex}-${match.index}`}
-                                dangerouslySetInnerHTML={{ 
-                                  __html: line.substring(lastIndex, match.index)
-                                    .replace(/(".*?")/g, '<span class="text-green-400">$1</span>')
-                                    .replace(/(\{|\}|\[|\])/g, '<span class="text-yellow-400">$1</span>')
-                                    .replace(/(true|false|null)/g, '<span class="text-blue-400">$1</span>')
-                                    .replace(/(\d+)/g, '<span class="text-purple-400">$1</span>')
-                                }} 
-                              />
-                            );
-                          }
-                          
-                          // Add the squiggled text
-                          const [, key, risk, value] = match;
-                          const result = resultMap.get(key);
-                          if (result) {
-                            parts.push(
-                              <SquiggleUnderline 
-                                key={`prod-${lineIndex}-${match.index}`}
-                                recommendation={result.suggestion}
-                                risk={risk as 'Low' | 'Medium' | 'High'}
-                              >
-                                {value}
-                              </SquiggleUnderline>
-                            );
-                          } else {
-                            parts.push(value);
-                          }
-                          
-                          lastIndex = squiggleRegex.lastIndex;
-                        }
-                        
-                        // Add remaining text
-                        if (lastIndex < line.length) {
-                          const remainingText = line.substring(lastIndex);
-                          parts.push(
-                            <span 
-                              key={`prod-remaining-${lineIndex}`}
-                              dangerouslySetInnerHTML={{ 
-                                __html: remainingText
-                                  .replace(/(".*?")/g, '<span class="text-green-400">$1</span>')
-                                  .replace(/(\{|\}|\[|\])/g, '<span class="text-yellow-400">$1</span>')
-                                  .replace(/(true|false|null)/g, '<span class="text-blue-400">$1</span>')
-                                  .replace(/(\d+)/g, '<span class="text-purple-400">$1</span>')
-                              }} 
-                            />
-                          );
-                        }
-                        
-                        return (
-                          <div key={lineIndex} className="flex hover:bg-gray-900/30 px-2 -mx-2 rounded">
-                            <span className="text-gray-500 text-right pr-4 select-none w-12 flex-shrink-0">
-                              {lineIndex + 1}
-                            </span>
-                            <span className="flex-1">
-                              {parts.length > 1 ? parts : (
-                                <span dangerouslySetInnerHTML={{ 
-                                  __html: line
-                                    .replace(/(".*?")/g, '<span class="text-green-400">$1</span>')
-                                    .replace(/(\{|\}|\[|\])/g, '<span class="text-yellow-400">$1</span>')
-                                    .replace(/(true|false|null)/g, '<span class="text-blue-400">$1</span>')
-                                    .replace(/(\d+)/g, '<span class="text-purple-400">$1</span>')
-                                }} />
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-            <p className="text-sm text-gray-300 flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              Hover over <span className="underline decoration-wavy decoration-red-400">underlined code</span> to see AI recommendations
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Unified view would be implemented similarly but with a single column
-  return (
-    <Card className="bg-gray-900 border-gray-700">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-white">
-          <Code className="w-5 h-5" />
-          Configuration Comparison - Unified View
-        </CardTitle>
-        <div className="flex gap-2">
-          <Button
-            variant={activeView === 'side-by-side' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveView('side-by-side')}
-            className="text-xs"
-          >
-            Side by Side
-          </Button>
-          <Button
-            variant={activeView === 'unified' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setActiveView('unified')}
-            className="text-xs"
-          >
-            Unified
-          </Button>
+      <div key={lineIndex} className="flex hover:bg-muted/50 px-2 -mx-2 rounded">
+        <div className="text-muted-foreground/60 w-8 text-right pr-4 select-none">
+          {lineIndex + 1}
         </div>
+        <div>
+          {parts.length > 0 ? parts : line}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2 mb-3">
+        <Badge variant="secondary">
+          {title}
+        </Badge>
+      </div>
+  <div className="bg-secondary rounded-lg overflow-visible border border-border">
+        <div className="p-4">
+          <div className="text-sm font-mono text-muted-foreground whitespace-pre-wrap">
+            {highlightProblematicCode(config)
+              .split('\n')
+              .map(renderCodeLine)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ViewToggle({ 
+  activeView, 
+  onViewChange 
+}: { 
+  activeView: 'side-by-side' | 'unified';
+  onViewChange: (view: 'side-by-side' | 'unified') => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <Button
+        variant={activeView === 'side-by-side' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => onViewChange('side-by-side')}
+        className="text-xs"
+      >
+        Side by Side
+      </Button>
+      <Button
+        variant={activeView === 'unified' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => onViewChange('unified')}
+        className="text-xs"
+      >
+        Unified View
+      </Button>
+    </div>
+  );
+}
+
+function SideBySideView({ 
+  devConfig, 
+  prodConfig, 
+  comparisonResults 
+}: {
+  devConfig: string;
+  prodConfig: string;
+  comparisonResults: ComparisonResult[];
+}) {
+  const formatConfig = (config: string) => {
+    try {
+      return JSON.stringify(JSON.parse(config), null, 2);
+    } catch {
+      return config;
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CodeBlock 
+        config={formatConfig(devConfig)}
+        title="Development"
+        comparisonResults={comparisonResults}
+        isDevConfig={true}
+      />
+      <CodeBlock 
+        config={formatConfig(prodConfig)}
+        title="Production"
+        comparisonResults={comparisonResults}
+        isDevConfig={false}
+      />
+    </div>
+  );
+}
+
+function UnifiedView({ comparisonResults }: { comparisonResults: ComparisonResult[] }) {
+  return (
+    <div className="space-y-2">
+  <div className="bg-secondary rounded-lg overflow-visible border border-border">
+        <div className="p-4">
+          <div className="text-sm font-mono text-muted-foreground whitespace-pre-wrap">
+            {comparisonResults.map((result, resultIndex) => (
+              <div key={resultIndex} className="mb-4 pb-4 border-b border-border last:border-b-0">
+                <div className="flex mb-2">
+                  <div className="font-semibold text-foreground">{result.key}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Badge variant="secondary" className="mb-2">
+                      Development
+                    </Badge>
+                    <div className="pl-4 border-l-2 border-blue-500">
+                      <SquiggleUnderline
+                        risk={result.risk}
+                        recommendation={result.suggestion}
+                      >
+                        {result.devValue}
+                      </SquiggleUnderline>
+                    </div>
+                  </div>
+                  <div>
+                    <Badge variant="secondary" className="mb-2">
+                      Production
+                    </Badge>
+                    <div className="pl-4 border-l-2 border-blue-500">
+                      <SquiggleUnderline
+                        risk={result.risk}
+                        recommendation={result.suggestion}
+                      >
+                        {result.prodValue}
+                      </SquiggleUnderline>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CodeDiff({ devConfig, prodConfig, comparisonResults }: CodeDiffProps) {
+  const [activeView, setActiveView] = useState<'side-by-side' | 'unified'>('side-by-side');
+  
+  return (
+    <Card className="bg-card border border-border rounded-xl shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between pt-4">
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <Code className="w-5 h-5 text-blue-500" />
+          Configuration Comparison
+        </CardTitle>
+        <ViewToggle activeView={activeView} onViewChange={setActiveView} />
       </CardHeader>
       <CardContent>
-        <div className="text-center py-8 text-gray-400">
-          <p>Unified diff view coming soon...</p>
-        </div>
+        {activeView === 'side-by-side' ? (
+          <SideBySideView 
+            devConfig={devConfig}
+            prodConfig={prodConfig}
+            comparisonResults={comparisonResults}
+          />
+        ) : (
+          <UnifiedView comparisonResults={comparisonResults} />
+        )}
+        <RiskLegend />
       </CardContent>
     </Card>
   );

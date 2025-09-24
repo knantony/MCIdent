@@ -13,111 +13,89 @@ interface BentoMetricsProps {
 
 export default function BentoMetrics({ healthScore, totalIssues }: BentoMetricsProps) {
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-400';
-    if (score >= 60) return 'text-yellow-400';
-    return 'text-red-400';
+    if (score >= 80) return 'bg-green-800';
+    if (score >= 60) return 'bg-yellow-700';
+    return 'bg-red-800';
   };
 
-  const getScoreGradient = (score: number) => {
-    if (score >= 80) return 'from-green-500/20 to-green-600/20';
-    if (score >= 60) return 'from-yellow-500/20 to-yellow-600/20';
-    return 'from-red-500/20 to-red-600/20';
+  const getRiskColor = (risk: 'High' | 'Medium' | 'Low') => {
+    if (risk === 'High') return 'bg-red-800';
+    if (risk === 'Medium') return 'bg-yellow-700';
+    return 'bg-green-800';
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
-      {/* Main Health Score - Takes up more space */}
-      <Card className={cn(
-        "md:col-span-2 lg:col-span-3 bg-gradient-to-br border-gray-700/50 relative overflow-hidden",
-        getScoreGradient(healthScore.score)
-      )}>
-        <CardContent className="p-6 relative">
-          <div className="absolute top-4 right-4 opacity-20">
-            <BarChart3 className="w-16 h-16" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-gray-300 text-sm font-medium">Configuration Health</p>
-            <div className="flex items-end gap-2">
-              <span className={cn("text-4xl font-bold", getScoreColor(healthScore.score))}>
-                {healthScore.score}
-              </span>
-              <span className="text-gray-400 text-lg mb-1">%</span>
-            </div>
-            <p className="text-gray-400 text-xs">
-              {healthScore.score >= 80 ? 'Excellent' : 
-               healthScore.score >= 60 ? 'Good' : 'Needs Attention'}
-            </p>
-          </div>
-        </CardContent>
+  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {/* Health Score Card */}
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
+          <span className="text-base font-medium text-foreground">Configuration Health</span>
+          <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-muted-foreground font-semibold">
+            {healthScore.score >= 80 ? <TrendingUp className="w-3 h-3 mr-1 text-green-400" /> : <AlertTriangle className="w-3 h-3 mr-1 text-red-400" />}
+            {healthScore.score}%
+          </span>
+        </div>
+        <div className="text-4xl font-bold text-white mb-0">{healthScore.score}</div>
+        <div className="text-sm font-semibold text-muted-foreground mb-0">
+          {healthScore.score >= 80 ? 'Excellent' : healthScore.score >= 60 ? 'Good' : 'Needs Attention'}
+        </div>
+        <div className="text-xs text-muted-foreground mt-0">Overall config health</div>
       </Card>
 
-      {/* High Risk Issues */}
-      <Card className="bg-gradient-to-br from-red-500/10 to-red-600/10 border-red-500/20">
-        <CardContent className="p-4 relative">
-          <div className="absolute top-3 right-3 opacity-30">
-            <AlertTriangle className="w-8 h-8 text-red-400" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-gray-300 text-xs font-medium">High Risk</p>
-            <div className="text-2xl font-bold text-red-400">
-              {healthScore.highRisk}
-            </div>
-            <p className="text-red-300/70 text-xs">Critical issues</p>
-          </div>
-        </CardContent>
+      {/* High Risk Card */}
+  <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-2">
+        <div className="flex flex-row justify-between items-start mb-0.5">
+          <span className="text-base font-medium text-foreground">High Risk</span>
+          <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-red-400 font-semibold">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            {healthScore.highRisk}
+          </span>
+        </div>
+        <div className="text-4xl font-bold text-white mb-1">{healthScore.highRisk}</div>
+        <div className="text-sm font-semibold text-red-400 mb-1">Critical issues</div>
+        <div className="text-xs text-muted-foreground mt-1">Immediate attention needed</div>
       </Card>
 
-      {/* Medium Risk Issues */}
-      <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border-yellow-500/20">
-        <CardContent className="p-4 relative">
-          <div className="absolute top-3 right-3 opacity-30">
-            <Shield className="w-8 h-8 text-yellow-400" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-gray-300 text-xs font-medium">Medium Risk</p>
-            <div className="text-2xl font-bold text-yellow-400">
-              {healthScore.mediumRisk}
-            </div>
-            <p className="text-yellow-300/70 text-xs">Moderate issues</p>
-          </div>
-        </CardContent>
+      {/* Medium Risk Card */}
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
+          <span className="text-base font-medium text-foreground">Medium Risk</span>
+          <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-yellow-400 font-semibold">
+            <Shield className="w-3 h-3 mr-1" />
+            {healthScore.mediumRisk}
+          </span>
+        </div>
+        <div className="text-4xl font-bold text-white mb-1">{healthScore.mediumRisk}</div>
+        <div className="text-sm font-semibold text-yellow-400 mb-1">Moderate issues</div>
+        <div className="text-xs text-muted-foreground mt-1">Review recommended</div>
       </Card>
 
-      {/* Low Risk Issues */}
-      <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
-        <CardContent className="p-4 relative">
-          <div className="absolute top-3 right-3 opacity-30">
-            <CheckCircle className="w-8 h-8 text-green-400" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-gray-300 text-xs font-medium">Low Risk</p>
-            <div className="text-2xl font-bold text-green-400">
-              {healthScore.lowRisk}
-            </div>
-            <p className="text-green-300/70 text-xs">Minor issues</p>
-          </div>
-        </CardContent>
+      {/* Low Risk Card */}
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
+          <span className="text-base font-medium text-foreground">Low Risk</span>
+          <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-green-400 font-semibold">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            {healthScore.lowRisk}
+          </span>
+        </div>
+        <div className="text-4xl font-bold text-white mb-1">{healthScore.lowRisk}</div>
+        <div className="text-sm font-semibold text-green-400 mb-1">Minor issues</div>
+        <div className="text-xs text-muted-foreground mt-1">All good</div>
       </Card>
 
-      {/* Total Issues - Spans remaining space */}
-      <Card className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
-        <CardContent className="p-4 relative">
-          <div className="absolute top-3 right-3 opacity-30">
-            <FileX className="w-8 h-8 text-blue-400" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-gray-300 text-sm font-medium">Total Issues Found</p>
-            <div className="flex items-end gap-2">
-              <span className="text-3xl font-bold text-blue-400">{totalIssues}</span>
-              <span className="text-gray-400 text-sm mb-1">discrepancies</span>
-            </div>
-            <div className="flex gap-1">
-              <div className="h-1 flex-1 bg-red-500/50 rounded"></div>
-              <div className="h-1 flex-1 bg-yellow-500/50 rounded"></div>
-              <div className="h-1 flex-1 bg-green-500/50 rounded"></div>
-            </div>
-          </div>
-        </CardContent>
+      {/* Total Issues Card */}
+      <Card className="bg-[#131316] border border-[#232326] rounded-2xl shadow-lg flex flex-col justify-between aspect-square h-full p-4">
+        <div className="flex flex-row justify-between items-start mb-0.5">
+          <span className="text-base font-medium text-foreground">Total Issues Found</span>
+          <span className="inline-flex items-center gap-1 bg-[#232326] text-xs px-2 py-0.5 rounded-full text-blue-400 font-semibold">
+            <FileX className="w-3 h-3 mr-1" />
+            {totalIssues}
+          </span>
+        </div>
+        <div className="text-4xl font-bold text-white mb-1">{totalIssues}</div>
+        <div className="text-sm font-semibold text-blue-400 mb-1">Discrepancies</div>
+        <div className="text-xs text-muted-foreground mt-1">Acquisition needs attention</div>
       </Card>
     </div>
   );
