@@ -167,12 +167,26 @@ function CodeBlock({
     
     comparisonResults.forEach((result) => {
       const searchValue = isDevConfig ? result.devValue : result.prodValue;
-      const keyPattern = new RegExp(
-        `("${result.key.split('.').pop()}"\\s*:\\s*)(${JSON.stringify(searchValue)})`, 
+      const keyName = result.key.split('.').pop();
+      
+      // Support both JSON and YAML formats
+      const jsonPattern = new RegExp(
+        `("${keyName}"\\s*:\\s*)(${JSON.stringify(searchValue)})`, 
+        'g'
+      );
+      // YAML pattern supports both quoted and unquoted values
+      const yamlPattern = new RegExp(
+        `(${keyName}\\s*:\\s*)("?${searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?)`, 
         'g'
       );
       
-      highlightedCode = highlightedCode.replace(keyPattern, (match, keyPart, valuePart) => {
+      // Try JSON pattern first
+      highlightedCode = highlightedCode.replace(jsonPattern, (match, keyPart, valuePart) => {
+        return `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
+      });
+      
+      // Then try YAML pattern
+      highlightedCode = highlightedCode.replace(yamlPattern, (match, keyPart, valuePart) => {
         return `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
       });
     });
@@ -295,8 +309,10 @@ function SideBySideView({
 }) {
   const formatConfig = (config: string) => {
     try {
+      // Try to parse as JSON and format
       return JSON.stringify(JSON.parse(config), null, 2);
     } catch {
+      // If not JSON, return as-is (could be YAML or other format)
       return config;
     }
   };
