@@ -12,6 +12,9 @@ interface ComparisonResult {
   key: string;
   devValue: string;
   prodValue: string;
+  problematicValue?: string;
+  problematicEnvironment?: 'dev' | 'prod' | 'both';
+  observation: string;
   suggestion: string;
   risk: 'Low' | 'Medium' | 'High';
 }
@@ -68,10 +71,16 @@ const getBadgeVariant = (risk: string) => {
 // Components
 function SquiggleUnderline({ recommendation, risk, children }: SquiggleProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = (e: React.MouseEvent) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    });
     setShowTooltip(true);
   };
 
@@ -99,10 +108,15 @@ function SquiggleUnderline({ recommendation, risk, children }: SquiggleProps) {
       
       {showTooltip && (
         <div className={cn(
-          "absolute z-[10000] bottom-full left-1/2 transform -translate-x-1/2 mb-2",
+          "fixed z-[10000] pointer-events-none",
           "bg-black border rounded-lg shadow-xl p-3 min-w-64 max-w-sm",
           getRiskColor(risk)
-        )}>
+        )}
+        style={{
+          top: `${tooltipPosition.y - 10}px`,
+          left: `${Math.max(10, Math.min(tooltipPosition.x - 128, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 266))}px`,
+          transform: 'translateY(-100%)'
+        }}>
           <div className="flex items-start gap-2 mb-2">
             {getRiskIcon(risk)}
             <Badge variant={getBadgeVariant(risk)} className="text-xs">
@@ -166,29 +180,56 @@ function CodeBlock({
     let highlightedCode = code;
     
     comparisonResults.forEach((result) => {
+      // Only highlight if this side has the problematic value
+      const shouldHighlight = (
+        (isDevConfig && (result.problematicEnvironment === 'dev' || result.problematicEnvironment === 'both')) ||
+        (!isDevConfig && (result.problematicEnvironment === 'prod' || result.problematicEnvironment === 'both'))
+      );
+      
+      if (!shouldHighlight) return; // Skip highlighting for non-problematic side
+      
       const searchValue = isDevConfig ? result.devValue : result.prodValue;
-      const keyName = result.key.split('.').pop();
       
-      // Support both JSON and YAML formats
-      const jsonPattern = new RegExp(
-        `("${keyName}"\\s*:\\s*)(${JSON.stringify(searchValue)})`, 
-        'g'
-      );
-      // YAML pattern supports both quoted and unquoted values
-      const yamlPattern = new RegExp(
-        `(${keyName}\\s*:\\s*)("?${searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?)`, 
-        'g'
-      );
+      // Handle different key formats (simple key vs nested key)
+      const keyParts = result.key.split('.');
+      const keyName = keyParts[keyParts.length - 1]; // Last part of the key
       
-      // Try JSON pattern first
-      highlightedCode = highlightedCode.replace(jsonPattern, (match, keyPart, valuePart) => {
-        return `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
-      });
+      // Escape special regex characters in the search value
+      const escapedValue = searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
-      // Then try YAML pattern
-      highlightedCode = highlightedCode.replace(yamlPattern, (match, keyPart, valuePart) => {
-        return `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
-      });
+      // Create patterns for nested YAML structure
+      let patterns = [];
+      
+      if (keyParts.length > 1) {
+        // For nested keys like "server.host", look for indented YAML structure
+        const parentKey = keyParts[0];
+        patterns = [
+          // Nested YAML: under parent key with indentation
+          new RegExp(`(\\s+${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'gm'),
+          // Alternative nested format
+          new RegExp(`(${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'g')
+        ];
+      } else {
+        // For simple keys, use standard patterns
+        patterns = [
+          // JSON format: "key": "value" or "key": value
+          new RegExp(`("${keyName}"\\s*:\\s*)(${JSON.stringify(searchValue)})`, 'g'),
+          // YAML format: key: "value" or key: value  
+          new RegExp(`(${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'g')
+        ];
+      }
+      
+      // Try each pattern until we find a match
+      for (const pattern of patterns) {
+        const originalCode = highlightedCode;
+        highlightedCode = highlightedCode.replace(pattern, (match, keyPart, valuePart) => {
+          return `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
+        });
+        // If we found a match, break out of the loop
+        if (highlightedCode !== originalCode) {
+          break;
+        }
+      }
     });
 
     return highlightedCode;
@@ -213,11 +254,18 @@ function CodeBlock({
       const result = resultMap.get(key);
       
       if (result) {
+        // Create environment-specific recommendation
+        const currentEnv = isDevConfig ? 'dev' : 'prod';
+        const envLabel = currentEnv.toUpperCase();
+        const contextualRecommendation = result.problematicEnvironment === currentEnv 
+          ? `${envLabel} Issue: ${result.suggestion}`
+          : result.suggestion;
+        
         parts.push(
           <SquiggleUnderline
             key={`${lineIndex}-squiggle-${match.index}`}
             risk={risk as 'Low' | 'Medium' | 'High'}
-            recommendation={result.suggestion}
+            recommendation={contextualRecommendation}
           >
             {content}
           </SquiggleUnderline>

@@ -1,0 +1,30 @@
+# Production Configuration - Demo
+app:
+  name: "MyApp"
+  version: "1.0.0"
+  debug: true  # Debug enabled in prod - CRITICAL BAD!
+  environment: "production"
+
+database:
+  host: "prod-db.company.com"
+  port: 5432
+  name: "myapp_prod"
+  username: "app_user"
+  password: "StrongProd123!"
+
+server:
+  host: "app.company.com"
+  port: 443
+  ssl_enabled: false  # SSL disabled in prod - CRITICAL BAD!
+
+logging:
+  level: "debug"  # Debug logging in prod - BAD!
+  file: "/var/log/myapp.log"
+
+security:
+  jwt_secret: "prod_jwt_secret_key_12345"
+  ssl_verify: true
+
+features:
+  experimental_mode: false
+  cache_enabled: true
