@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ComparisonResult, ComparisonApiResponse, FileUploadState, AnalysisState, HealthScore } from '@/lib/types';
+import { ComparisonResult, ComparisonApiResponse, FileAnalysisResponse, FileUploadState, AnalysisState, HealthScore } from '@/lib/types';
 import { Loader2, Download, Sparkles, FileCode } from 'lucide-react';
 import FileDropZone from '@/components/file-dropzone';
 import BentoMetrics from '@/components/bento-metrics';
@@ -80,34 +80,83 @@ export default function Home() {
       // Store config contents for the code diff component
       setConfigContents({ devConfig, prodConfig });
 
-      const response = await fetch('/api/compare', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ devConfig, prodConfig }),
+      // Analyze each file individually in parallel
+      const [devAnalysisResponse, prodAnalysisResponse] = await Promise.all([
+        fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: devConfig, environment: 'dev' }),
+        }),
+        fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: prodConfig, environment: 'prod' }),
+        })
+      ]);
+
+      const devAnalysis = await devAnalysisResponse.json();
+      const prodAnalysis = await prodAnalysisResponse.json();
+
+      if (!devAnalysis.success || !prodAnalysis.success) {
+        throw new Error(devAnalysis.error || prodAnalysis.error || 'Analysis failed');
+      }
+
+      // Convert individual file issues to comparison results for display
+      const combinedResults: ComparisonResult[] = [];
+      
+      // Add dev issues
+      devAnalysis.issues.forEach((issue: any) => {
+        combinedResults.push({
+          key: issue.key,
+          devValue: issue.value,
+          prodValue: 'N/A', // Will be filled if prod has same key
+          problematicValue: issue.value,
+          problematicEnvironment: 'dev',
+          observation: issue.observation,
+          suggestion: issue.suggestion,
+          risk: issue.risk
+        });
       });
 
-      const result: ComparisonApiResponse = await response.json();
+      // Add prod issues and merge with existing dev issues
+      prodAnalysis.issues.forEach((issue: any) => {
+        const existingIndex = combinedResults.findIndex(r => r.key === issue.key);
+        if (existingIndex >= 0) {
+          // Key exists in both, update prod value
+          combinedResults[existingIndex].prodValue = issue.value;
+          // Determine which environment is more problematic
+          if (issue.risk === 'High' && combinedResults[existingIndex].risk !== 'High') {
+            combinedResults[existingIndex].problematicValue = issue.value;
+            combinedResults[existingIndex].problematicEnvironment = 'prod';
+            combinedResults[existingIndex].observation = issue.observation;
+            combinedResults[existingIndex].suggestion = issue.suggestion;
+            combinedResults[existingIndex].risk = issue.risk;
+          }
+        } else {
+          // Prod-only issue
+          combinedResults.push({
+            key: issue.key,
+            devValue: 'N/A',
+            prodValue: issue.value,
+            problematicValue: issue.value,
+            problematicEnvironment: 'prod',
+            observation: issue.observation,
+            suggestion: issue.suggestion,
+            risk: issue.risk
+          });
+        }
+      });
 
-      if (result.success && result.data) {
-        const healthScore = calculateHealthScore(result.data);
-        setAnalysisState({
-          isLoading: false,
-          results: result.data,
-          error: null,
-          healthScore
-        });
-      } else {
-        setAnalysisState({
-          isLoading: false,
-          results: null,
-          error: result.error || 'Analysis failed. Please try again.',
-          healthScore: null
-        });
-      }
+      const healthScore = calculateHealthScore(combinedResults);
+      setAnalysisState({
+        isLoading: false,
+        results: combinedResults,
+        error: null,
+        healthScore
+      });
+
     } catch (error) {
-      console.error('Error comparing files:', error);
+      console.error('Error analyzing files:', error);
       setAnalysisState({
         isLoading: false,
         results: null,
@@ -121,10 +170,30 @@ export default function Home() {
     if (!analysisState.results) return;
 
     // Create CSV content
-    const csvHeader = 'Key,Dev Value,Prod Value,Observation,Suggestion,Risk Level\n';
-    const csvContent = analysisState.results.map(result => 
-      `"${result.key}","${result.devValue}","${result.prodValue}","${result.observation}","${result.suggestion}","${result.risk}"`
-    ).join('\n');
+    const csvHeader = 'Key,Problematic Value,Environment,Dev Value,Prod Value,Observation,Suggestion,Risk Level\n';
+    const csvContent = analysisState.results.map(result => {
+      // Determine problematic value and environment (same logic as table)
+      const getProblematicInfo = () => {
+        if (result.problematicValue && result.problematicEnvironment) {
+          return { value: result.problematicValue, environment: result.problematicEnvironment };
+        }
+        
+        const devStr = result.devValue.toLowerCase();
+        const prodStr = result.prodValue.toLowerCase();
+        
+        if (devStr.includes('localhost') || devStr.includes('127.0.0.1') || 
+            devStr.includes('debug') || devStr.includes('test') || 
+            devStr === 'true' && prodStr === 'false') {
+          return { value: result.devValue, environment: 'dev' };
+        }
+        
+        return { value: result.prodValue, environment: 'prod' };
+      };
+
+      const { value, environment } = getProblematicInfo();
+      
+      return `"${result.key}","${value}","${environment}","${result.devValue}","${result.prodValue}","${result.observation}","${result.suggestion}","${result.risk}"`;
+    }).join('\n');
     
     const csvData = csvHeader + csvContent;
     const blob = new Blob([csvData], { type: 'text/csv' });
@@ -261,45 +330,88 @@ export default function Home() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-muted-foreground font-semibold py-3 px-4">Configuration Key</TableHead>
+                        <TableHead className="text-muted-foreground font-semibold py-3 px-4">Problematic Value</TableHead>
                         <TableHead className="text-muted-foreground font-semibold py-3 px-4">Issue Description</TableHead>
                         <TableHead className="text-muted-foreground font-semibold py-3 px-4">Recommendation</TableHead>
                         <TableHead className="text-muted-foreground font-semibold py-3 px-4 text-center">Risk</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {analysisState.results.map((result, index) => (
-                        <TableRow key={index} className="border-b border-[#232326]">
-                          <TableCell className="font-mono text-vercel-blue px-4 py-2">
-                            <span className="block max-w-[180px] truncate break-words whitespace-pre-wrap" title={result.key}>
-                              {result.key}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-foreground px-4 py-2 max-w-md">
-                            <span className="block max-w-[260px] break-words whitespace-pre-wrap overflow-hidden" title={result.observation}>
-                              {result.observation}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-foreground px-4 py-2 max-w-md">
-                            <span className="block max-w-[260px] break-words whitespace-pre-wrap overflow-hidden" title={result.suggestion}>
-                              {result.suggestion}
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-4 py-2 text-center">
-                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-transparent">
-                              {result.risk === "Low" && (
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-                              )}
-                              {result.risk === "Medium" && (
-                                <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" />
-                              )}
-                              {result.risk === "High" && (
-                                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-                              )}
-                              {result.risk}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {analysisState.results.map((result, index) => {
+                        // Determine which value to show and environment indicator
+                        const getProblematicValue = () => {
+                          // If backend provides problematicValue, use that
+                          if (result.problematicValue && result.problematicEnvironment) {
+                            return {
+                              value: result.problematicValue,
+                              environment: result.problematicEnvironment
+                            };
+                          }
+                          
+                          // Fallback: determine based on common patterns
+                          // If dev value suggests it's the issue (debug, test, localhost, etc.)
+                          const devStr = result.devValue.toLowerCase();
+                          const prodStr = result.prodValue.toLowerCase();
+                          
+                          // Common dev issue patterns
+                          if (devStr.includes('localhost') || devStr.includes('127.0.0.1') || 
+                              devStr.includes('debug') || devStr.includes('test') || 
+                              devStr === 'true' && prodStr === 'false') {
+                            return { value: result.devValue, environment: 'dev' };
+                          }
+                          
+                          // Otherwise assume prod has the issue or both different
+                          return { value: result.prodValue, environment: 'prod' };
+                        };
+
+                        const { value, environment } = getProblematicValue();
+                        const envColor = environment === 'dev' ? 'text-orange-400' : environment === 'prod' ? 'text-red-400' : 'text-yellow-400';
+                        const envLabel = environment === 'dev' ? 'DEV' : environment === 'prod' ? 'PROD' : 'BOTH';
+
+                        return (
+                          <TableRow key={index} className="border-b border-[#232326]">
+                            <TableCell className="font-mono text-vercel-blue px-4 py-2">
+                              <span className="block max-w-[180px] truncate break-words whitespace-pre-wrap" title={result.key}>
+                                {result.key}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-foreground px-4 py-2 max-w-md">
+                              <div className="flex flex-col gap-1">
+                                <span className="block max-w-[200px] break-words whitespace-pre-wrap overflow-hidden font-mono text-sm" title={value}>
+                                  {value}
+                                </span>
+                                <span className={`text-xs font-semibold ${envColor}`}>
+                                  {envLabel}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-foreground px-4 py-2 max-w-md">
+                              <span className="block max-w-[260px] break-words whitespace-pre-wrap overflow-hidden" title={result.observation}>
+                                {result.observation}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-foreground px-4 py-2 max-w-md">
+                              <span className="block max-w-[260px] break-words whitespace-pre-wrap overflow-hidden" title={result.suggestion}>
+                                {result.suggestion}
+                              </span>
+                            </TableCell>
+                            <TableCell className="px-4 py-2 text-center">
+                              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-transparent">
+                                {result.risk === "Low" && (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                                )}
+                                {result.risk === "Medium" && (
+                                  <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" />
+                                )}
+                                {result.risk === "High" && (
+                                  <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                                )}
+                                {result.risk}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

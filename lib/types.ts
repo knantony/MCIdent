@@ -4,6 +4,8 @@ export interface ComparisonResult {
   key: string;
   devValue: string;
   prodValue: string;
+  problematicValue?: string;  // The actual problematic value to display
+  problematicEnvironment?: 'dev' | 'prod' | 'both';  // Which env has the issue
   observation: string;
   suggestion: string;
   risk: 'Low' | 'Medium' | 'High';
@@ -13,6 +15,33 @@ export interface ComparisonApiResponse {
   success: boolean;
   data?: ComparisonResult[];
   error?: string;
+}
+
+// New types for individual file analysis
+export interface FileIssue {
+  key: string;
+  value: string;
+  observation: string;
+  suggestion: string;
+  risk: 'Low' | 'Medium' | 'High';
+}
+
+export interface FileAnalysisRequest {
+  config: string;
+  environment: 'dev' | 'prod';
+}
+
+export interface FileAnalysisResponse {
+  success: boolean;
+  environment: string;
+  issues: FileIssue[];
+  error?: string;
+  healthScore?: {
+    score: number;
+    highRisk: number;
+    mediumRisk: number;
+    lowRisk: number;
+  };
 }
 
 export interface AnalysisRequest {

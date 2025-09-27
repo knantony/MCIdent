@@ -1,0 +1,30 @@
+# Development Configuration - Demo
+app:
+  name: "MyApp"
+  version: "1.0.0"
+  debug: true
+  environment: "development"
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "myapp_prod"  # Using prod DB in dev - BAD!
+  username: "admin"
+  password: "password123"  # Weak password - BAD!
+
+server:
+  host: "127.0.0.1"
+  port: 3000
+  ssl_enabled: false
+
+logging:
+  level: "debug"
+  file: "/tmp/app.log"
+
+security:
+  jwt_secret: "default_secret"  # Weak secret - BAD!
+  ssl_verify: false
+
+features:
+  experimental_mode: true
+  cache_enabled: true
