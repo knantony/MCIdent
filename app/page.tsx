@@ -225,7 +225,7 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-4 text-foreground">
-            Config Compare AI
+            Missing Configuration Identifier
           </h1>
           <p className="text-gray-300 text-lg max-w-2xl mx-auto">
             Analyze configuration drift between environments. Upload your Dev and Prod files (JSON/YAML) to get an AI-powered analysis.
@@ -258,7 +258,7 @@ export default function Home() {
                 size="lg"
                 className="bg-zinc-800 hover:bg-zinc-700 disabled:bg-black disabled:text-gray-600 border border-zinc-700 text-white font-medium px-8 py-3"
               >
-                <Sparkles className="w-5 h-5 mr-2" />
+                
                 Analyze with AI
               </Button>
             </div>

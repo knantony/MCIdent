@@ -18,10 +18,10 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
     reload = os.getenv("ENV", "development") == "development"
     
-    print(f"🚀 Starting Config Compare AI Backend...")
-    print(f"📍 Server: http://{host}:{port}")
-    print(f"🤖 AI Enabled: {'Yes' if os.getenv('GEMINI_API_KEY') else 'No (using basic comparison)'}")
-    print(f"🔄 Auto-reload: {'Yes' if reload else 'No'}")
+    print(f"Starting Config Compare AI Backend...")
+    print(f"Server: http://{host}:{port}")
+    print(f"AI Enabled: {'Yes' if os.getenv('GEMINI_API_KEY') else 'No (using basic comparison)'}")
+    print(f"Auto-reload: {'Yes' if reload else 'No'}")
     
     # Start server
     uvicorn.run(

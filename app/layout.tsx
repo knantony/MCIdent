@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Config buddy",
-  description: "Made with ❤️ by Antony and team",
+  title: "Missing Configuration Identifier",
+  description: "Made with by Antony and team",
 };
 
 export default function RootLayout({
