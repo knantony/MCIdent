@@ -178,6 +178,10 @@ function CodeBlock({
     if (!comparisonResults.length) return code;
 
     let highlightedCode = code;
+    const processedPositions = new Set<string>();
+    
+    // Detect if this is JSON or YAML format
+    const isJSON = code.trim().startsWith('{');
     
     comparisonResults.forEach((result) => {
       // Only highlight if this side has the problematic value
@@ -190,44 +194,72 @@ function CodeBlock({
       
       const searchValue = isDevConfig ? result.devValue : result.prodValue;
       
+      // Skip invalid values
+      if (!searchValue || searchValue === 'N/A' || searchValue === 'null') return;
+      
       // Handle different key formats (simple key vs nested key)
       const keyParts = result.key.split('.');
       const keyName = keyParts[keyParts.length - 1]; // Last part of the key
       
       // Escape special regex characters in the search value
-      const escapedValue = searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedValue = searchValue.toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
-      // Create patterns for nested YAML structure
-      let patterns = [];
+      let patterns: RegExp[] = [];
       
-      if (keyParts.length > 1) {
-        // For nested keys like "server.host", look for indented YAML structure
-        const parentKey = keyParts[0];
+      if (isJSON) {
+        // JSON patterns - need to match both quoted strings and unquoted values
         patterns = [
-          // Nested YAML: under parent key with indentation
-          new RegExp(`(\\s+${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'gm'),
-          // Alternative nested format
-          new RegExp(`(${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'g')
+          // Quoted string values: "key": "value"
+          new RegExp(`("${keyName}"\\s*:\\s*)"(${escapedValue})"`, 'g'),
+          // Unquoted values (numbers, booleans, null): "key": value
+          new RegExp(`("${keyName}"\\s*:\\s*)(${escapedValue})(?=[,\\s}\\]])`, 'g'),
+          // Try with full key path for nested objects
+          ...keyParts.map(part => 
+            new RegExp(`("${part}"\\s*:\\s*)"?(${escapedValue})"?(?=[,\\s}\\]])`, 'g')
+          )
         ];
       } else {
-        // For simple keys, use standard patterns
-        patterns = [
-          // JSON format: "key": "value" or "key": value
-          new RegExp(`("${keyName}"\\s*:\\s*)(${JSON.stringify(searchValue)})`, 'g'),
-          // YAML format: key: "value" or key: value  
-          new RegExp(`(${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'g')
-        ];
+        // YAML patterns
+        if (keyParts.length > 1) {
+          // For nested keys like "server.host", look for indented YAML structure
+          patterns = [
+            // Nested YAML: under parent key with indentation
+            new RegExp(`(\\s+${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'gm'),
+            // Alternative nested format
+            new RegExp(`(${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'g')
+          ];
+        } else {
+          // For simple keys, use standard YAML patterns
+          patterns = [
+            // YAML format: key: "value" or key: value  
+            new RegExp(`(^\\s*${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'gm'),
+            new RegExp(`(${keyName}\\s*:\\s*)("?${escapedValue}"?)(?=\\s|$)`, 'g')
+          ];
+        }
       }
       
       // Try each pattern until we find a match
       for (const pattern of patterns) {
-        const originalCode = highlightedCode;
-        highlightedCode = highlightedCode.replace(pattern, (match, keyPart, valuePart) => {
-          return `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
-        });
-        // If we found a match, break out of the loop
-        if (highlightedCode !== originalCode) {
-          break;
+        let match;
+        pattern.lastIndex = 0; // Reset regex state
+        
+        while ((match = pattern.exec(code)) !== null) {
+          const posKey = `${match.index}-${match[0]}`;
+          
+          // Skip if already processed
+          if (processedPositions.has(posKey)) continue;
+          processedPositions.add(posKey);
+          
+          const keyPart = match[1];
+          const valuePart = match[2];
+          
+          if (!valuePart) continue;
+          
+          // Replace in the highlighted code
+          const replacement = `${keyPart}<squiggle data-key="${result.key}" data-risk="${result.risk}">${valuePart}</squiggle>`;
+          highlightedCode = highlightedCode.replace(match[0], replacement);
+          
+          break; // Only highlight first occurrence of this key
         }
       }
     });
